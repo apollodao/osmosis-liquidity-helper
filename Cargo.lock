@@ -153,9 +153,9 @@ dependencies = [
 
 [[package]]
 name = "astroport"
-version = "5.0.0-rc.1-tokenfactory"
+version = "5.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdf6999cd2652543814f071f6e67c718ad4608607c90bc3bc89566b8a5985db3"
+checksum = "5c4af74ada17a13fe7b75d0d529367eb5dcb15e06fd7e744892191856eedc742"
 dependencies = [
  "astroport-circular-buffer 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cosmos-sdk-proto 0.19.0",
@@ -1008,8 +1008,7 @@ dependencies = [
 [[package]]
 name = "cw-dex"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd655e137d57d6c77696247d2417cfee75b15d027b1465741f45fa88bfcbf1b7"
+source = "git+https://github.com/apollodao/cw-dex.git?rev=1bc26423607bfaee59d059e608c8460d42646291#1bc26423607bfaee59d059e608c8460d42646291"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",
@@ -1023,26 +1022,25 @@ dependencies = [
 [[package]]
 name = "cw-dex-astroport"
 version = "0.2.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32c217056c99f6fa18310c24e7a06f1b5ee489165d066e796ebd136e1ddce90b"
+source = "git+https://github.com/apollodao/cw-dex.git?rev=1bc26423607bfaee59d059e608c8460d42646291#1bc26423607bfaee59d059e608c8460d42646291"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",
  "astroport 2.9.5",
- "astroport 5.0.0-rc.1-tokenfactory",
+ "astroport 5.2.0",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-dex",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
+ "osmosis-std",
 ]
 
 [[package]]
 name = "cw-dex-osmosis"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1691781e4deda5b4fb564542752e9226763997996a71abadb80f770cd7ec04c"
+source = "git+https://github.com/apollodao/cw-dex.git?rev=1bc26423607bfaee59d059e608c8460d42646291#1bc26423607bfaee59d059e608c8460d42646291"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",
