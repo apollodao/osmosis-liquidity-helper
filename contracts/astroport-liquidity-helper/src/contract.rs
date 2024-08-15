@@ -252,13 +252,8 @@ pub fn execute_balancing_provide_liquidity(
     // For stableswap and concentrated liquidity pools we are allowed to provide
     // liquidity in any ratio, so we simply provide liquidity with all passed
     // assets.
-    let provide_liquidity_res = pool.provide_liquidity(
-        deps.as_ref(),
-        &env,
-        assets.clone(),
-        min_out,
-        Some(env.contract.address.to_string()),
-    )?;
+    let provide_liquidity_res =
+        pool.provide_liquidity(deps.as_ref(), &env, assets.clone(), min_out)?;
 
     println!("provide_liquidity_res: {:?}", provide_liquidity_res);
     // Callback to return LP tokens

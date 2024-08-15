@@ -1030,7 +1030,7 @@ dependencies = [
 [[package]]
 name = "cw-dex"
 version = "0.5.3"
-source = "git+https://github.com/apollodao/cw-dex.git?rev=46db747d976be0d91d60a9bd918d29376834768c#46db747d976be0d91d60a9bd918d29376834768c"
+source = "git+https://github.com/apollodao/cw-dex.git?rev=835756eed2d8428aae9269ae9eba2fca41d55473#835756eed2d8428aae9269ae9eba2fca41d55473"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",
@@ -1044,7 +1044,7 @@ dependencies = [
 [[package]]
 name = "cw-dex-astroport"
 version = "0.2.0-rc.1"
-source = "git+https://github.com/apollodao/cw-dex.git?rev=46db747d976be0d91d60a9bd918d29376834768c#46db747d976be0d91d60a9bd918d29376834768c"
+source = "git+https://github.com/apollodao/cw-dex.git?rev=835756eed2d8428aae9269ae9eba2fca41d55473#835756eed2d8428aae9269ae9eba2fca41d55473"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",
@@ -1062,7 +1062,7 @@ dependencies = [
 [[package]]
 name = "cw-dex-osmosis"
 version = "0.1.0"
-source = "git+https://github.com/apollodao/cw-dex.git?rev=46db747d976be0d91d60a9bd918d29376834768c#46db747d976be0d91d60a9bd918d29376834768c"
+source = "git+https://github.com/apollodao/cw-dex.git?rev=835756eed2d8428aae9269ae9eba2fca41d55473#835756eed2d8428aae9269ae9eba2fca41d55473"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",
@@ -1076,7 +1076,7 @@ dependencies = [
 [[package]]
 name = "cw-it"
 version = "0.4.0-rc.2"
-source = "git+https://github.com/apollodao/cw-it.git?rev=46ef9f2900c79cb7eef444a3460543f40ec7bee2#46ef9f2900c79cb7eef444a3460543f40ec7bee2"
+source = "git+https://github.com/apollodao/cw-it.git?rev=362c71a8f1603622ce291b2c49da093c02caeaec#362c71a8f1603622ce291b2c49da093c02caeaec"
 dependencies = [
  "anyhow",
  "apollo-cw-multi-test",

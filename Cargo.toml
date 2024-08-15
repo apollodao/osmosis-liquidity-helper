@@ -19,16 +19,16 @@ cw20              = "1.1.0"
 cw-storage-plus   = "1.1.0"
 thiserror         = "1.0.45"
 apollo-cw-asset   = "0.1.2"
-cw-dex            = { git = "https://github.com/apollodao/cw-dex.git", rev = "46db747d976be0d91d60a9bd918d29376834768c" }
-cw-dex-astroport  = { git = "https://github.com/apollodao/cw-dex.git", rev = "46db747d976be0d91d60a9bd918d29376834768c" }
-cw-dex-osmosis    = { git = "https://github.com/apollodao/cw-dex.git", rev = "46db747d976be0d91d60a9bd918d29376834768c" }
+cw-dex            = { git = "https://github.com/apollodao/cw-dex.git", rev = "835756eed2d8428aae9269ae9eba2fca41d55473" }
+cw-dex-astroport  = { git = "https://github.com/apollodao/cw-dex.git", rev = "835756eed2d8428aae9269ae9eba2fca41d55473" }
+cw-dex-osmosis    = { git = "https://github.com/apollodao/cw-dex.git", rev = "835756eed2d8428aae9269ae9eba2fca41d55473" }
 apollo-utils      = "0.1.1"
 cw-bigint         = "0.4.3"
 liquidity-helper  = { version = "0.4.0-rc.2", path = "./packages/liquidity-helper" }
 semver            = "1.0.20"
 
 # Dev dependencies
-cw-it = { git = "https://github.com/apollodao/cw-it.git", rev = "46ef9f2900c79cb7eef444a3460543f40ec7bee2", features = ["astroport"]}
+cw-it = { git = "https://github.com/apollodao/cw-it.git", rev = "362c71a8f1603622ce291b2c49da093c02caeaec", features = ["astroport"]}
 test-case         = "3.2.1"
 proptest          = "1.4.0"
 apollo-cw-multi-test = { git = "https://github.com/apollodao/cw-multi-test.git", rev = "7e7bc2b91a8199c47815b45ef23b3ab07390ae3a",features = ["stargate"] }

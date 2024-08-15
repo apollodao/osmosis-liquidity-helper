@@ -38,11 +38,11 @@ use cw_it::{ContractType, OwnedTestRunner, TestRunner};
 use liquidity_helper::LiquidityHelper;
 use test_case::test_matrix;
 
-// #[cfg(feature = "osmosis-test-tube")]
-// use cw_it::osmosis_test_tube::OsmosisTestApp;
+#[cfg(feature = "osmosis-test-tube")]
+use cw_it::osmosis_test_tube::OsmosisTestApp;
 
-// #[cfg(feature = "osmosis-test-tube")]
-// use cw_it::Artifact;
+#[cfg(feature = "osmosis-test-tube")]
+use cw_it::Artifact;
 
 use std::str::FromStr;
 
@@ -78,8 +78,8 @@ pub fn get_test_runner<'a>() -> OwnedTestRunner<'a> {
 
             OwnedTestRunner::MultiTest(multi_test_runner)
         }
-        // #[cfg(feature = "osmosis-test-tube")]
-        // "osmosis-test-app" => OwnedTestRunner::OsmosisTestApp(OsmosisTestApp::new()),
+        #[cfg(feature = "osmosis-test-tube")]
+        "osmosis-test-app" => OwnedTestRunner::OsmosisTestApp(OsmosisTestApp::new()),
         _ => panic!("Unsupported test runner type"),
     }
 }
@@ -107,10 +107,10 @@ where
 
     // Upload astroport pair xyk sale tax contract
     let sale_tax_contract = match app {
-        // #[cfg(feature = "osmosis-test-tube")]
-        // TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
-        //     ("tests/astroport-artifacts/astroport_pair_xyk_sale_tax.wasm").to_string(),
-        // )),
+        #[cfg(feature = "osmosis-test-tube")]
+        TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
+            ("tests/astroport-artifacts/astroport_pair_xyk_sale_tax.wasm").to_string(),
+        )),
         TestRunner::MultiTest(_) => ContractType::MultiTestContract(Box::new(
             ContractWrapper::new_with_empty(
                 astroport_pair_xyk_sale_tax::contract::execute,
@@ -146,10 +146,10 @@ where
 
     // Load compiled wasm bytecode or multi-test contract depending on the runner
     let astroport_liquidity_helper_wasm_byte_code = match app {
-        // #[cfg(feature = "osmosis-test-tube")]
-        // TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
-        //     ASTROPORT_LIQUIDITY_HELPER_WASM_FILE.to_string(),
-        // )),
+        #[cfg(feature = "osmosis-test-tube")]
+        TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
+            ASTROPORT_LIQUIDITY_HELPER_WASM_FILE.to_string(),
+        )),
         TestRunner::MultiTest(_) => {
             ContractType::MultiTestContract(Box::new(ContractWrapper::new(
                 astroport_liquidity_helper::contract::execute,
@@ -210,7 +210,7 @@ pub fn test_calc_xyk_balancing_swap() {
             contract_addr: Addr::unchecked(&astro_token),
         },
     ];
-    let (uluna_astro_pair_addr, uluna_astro_lp_token_addr, uluna_astro_token_denom) =
+    let (uluna_astro_pair_addr, _uluna_astro_lp_token_addr, _uluna_astro_token_denom) =
         create_astroport_pair(
             &runner,
             &astroport_contracts.factory.address,
@@ -457,7 +457,7 @@ pub fn test_balancing_provide_liquidity(
         },
         _ => None,
     };
-    let (uluna_astro_pair_addr, uluna_astro_lp_token_addr, uluna_astro_token_denom) =
+    let (uluna_astro_pair_addr, _uluna_astro_lp_token_addr, uluna_astro_token_denom) =
         create_astroport_pair(
             &runner,
             &astroport_contracts.factory.address,
@@ -521,7 +521,7 @@ pub fn test_balancing_provide_liquidity(
         .to_vec(),
         slippage_tolerance: Some(Decimal::from_str("0.02").unwrap()),
         auto_stake: None,
-        receiver: Some(admin.address()),
+        receiver: None,
         min_lp_to_receive: None,
     };
     let coins = if !reserves[0].is_zero() {
@@ -533,31 +533,9 @@ pub fn test_balancing_provide_liquidity(
         vec![]
     };
 
-    let admin_token_balance_before =
-        query_token_balance(&runner, &admin.address(), &uluna_astro_token_denom);
-
-    let pair_addr_token_balance_before =
-        query_token_balance(&runner, &uluna_astro_pair_addr, &uluna_astro_token_denom);
-
-    let res = wasm
+    let _res = wasm
         .execute(&uluna_astro_pair_addr, &provide_liq_msg, &coins, &admin)
         .unwrap();
-
-    println!("uluna_astro_token_denom: {:?}", uluna_astro_token_denom);
-    println!("admin: {:?}", admin.address());
-
-    let admin_token_balance_after =
-        query_token_balance(&runner, &admin.address(), &uluna_astro_token_denom);
-    let pair_addr_token_balance_after =
-        query_token_balance(&runner, &uluna_astro_pair_addr, &uluna_astro_token_denom);
-    println!("admin_token_balance_before: {:?}", admin_token_balance_before);
-    println!("admin_token_balance_after: {:?}", admin_token_balance_after);
-
-    println!("pair_addr_token_balance_before: {:?}", pair_addr_token_balance_before);
-    println!("pair_addr_token_balance_after: {:?}", pair_addr_token_balance_after);
-
-
-    println!("provide_liq res: {:?}", res);
 
     // Check pool liquidity after adding
     let initial_pool_liquidity: PoolResponse = wasm
