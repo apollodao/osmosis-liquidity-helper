@@ -12,8 +12,8 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_dex_astroport::astroport::factory::PairType;
-use cw_dex_astroport::astroport::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::astroport::querier::query_fee_info;
+use cw_dex_astroport::astroport_v5::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::AstroportPool;
 
 use cw_dex::traits::Pool;
@@ -100,11 +100,15 @@ pub fn execute_balancing_provide_liquidity(
     // Unwrap recipient or use caller's address
     let recipient = recipient.map_or(Ok(info.sender.clone()), |x| deps.api.addr_validate(&x))?;
 
+    println!("recipient: {:?}", recipient);
     // Check lp token balance before, to pass into callback
     let lp_token_balance = pool
         .lp_token()
         .query_balance(&deps.querier, env.contract.address.to_string())?;
-
+    println!(
+        "lp_token_balance in balancing provide liquidity: {:?}",
+        lp_token_balance
+    );
     // For XYK pools we need to swap some amount of one asset into the other before
     // we provide liquidity. For other types we can just provide liquidity
     // directly.
@@ -248,9 +252,15 @@ pub fn execute_balancing_provide_liquidity(
     // For stableswap and concentrated liquidity pools we are allowed to provide
     // liquidity in any ratio, so we simply provide liquidity with all passed
     // assets.
-    let provide_liquidity_res =
-        pool.provide_liquidity(deps.as_ref(), &env, assets.clone(), min_out)?;
+    let provide_liquidity_res = pool.provide_liquidity(
+        deps.as_ref(),
+        &env,
+        assets.clone(),
+        min_out,
+        Some(env.contract.address.to_string()),
+    )?;
 
+    println!("provide_liquidity_res: {:?}", provide_liquidity_res);
     // Callback to return LP tokens
     let callback_msg = CallbackMsg::ReturnLpTokens {
         pool,
@@ -280,11 +290,18 @@ pub fn execute_callback_return_lp_tokens(
     recipient: Addr,
 ) -> Result<Response, ContractError> {
     let lp_token = pool.lp_token();
-    let lp_token_balance = lp_token.query_balance(&deps.querier, env.contract.address)?;
-
+    println!("lp_token: {:?}", lp_token);
+    let lp_token_balance = lp_token.query_balance(&deps.querier, env.contract.address.clone())?;
+    let asset0_balance =
+        pool.pool_assets[0].query_balance(&deps.querier, env.contract.address.clone())?;
+    let asset1_balance = pool.pool_assets[1].query_balance(&deps.querier, env.contract.address)?;
+    println!("asset0_balance: {:?}", asset0_balance);
+    println!("asset1_balance: {:?}", asset1_balance);
+    println!("lp_token_balance: {:?}", lp_token_balance);
     let return_amount = lp_token_balance.checked_sub(balance_before)?;
     let return_asset = Asset::new(lp_token, return_amount);
     let msg = return_asset.transfer_msg(&recipient)?;
+    println!("msg: {:?}", msg);
 
     let event = Event::new("apollo/astroport-liquidity-helper/execute_callback_return_lp_tokens")
         .add_attribute("return_asset", return_asset.to_string())

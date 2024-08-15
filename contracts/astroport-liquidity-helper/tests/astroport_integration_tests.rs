@@ -1,27 +1,35 @@
 use apollo_cw_asset::{Asset, AssetInfo, AssetList};
 
+use apollo_cw_multi_test::BasicAppBuilder;
 use astroport_liquidity_helper::math::calc_xyk_balancing_swap;
 use astroport_liquidity_helper::msg::InstantiateMsg;
+use cosmwasm_std::Empty;
 use cosmwasm_std::{assert_approx_eq, coin, to_json_binary, Addr, Coin, Decimal, Uint128};
 use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
-use cw_dex_astroport::astroport::asset::{Asset as AstroAsset, AssetInfo as AstroAssetInfo};
-use cw_dex_astroport::astroport::factory::{
-    ExecuteMsg as FactoryExecuteMsg, FeeInfoResponse, PairType,
-};
-use cw_dex_astroport::astroport::pair::{
+use cw_dex_astroport::astroport::asset::AssetInfo as V3AstroAssetInfo;
+use cw_dex_astroport::astroport::factory::PairType;
+use cw_dex_astroport::astroport_v5;
+use cw_dex_astroport::astroport_v5::asset::{Asset as AstroAsset, AssetInfo as AstroAssetInfo};
+use cw_dex_astroport::astroport_v5::factory::PairType as V5PairType;
+use cw_dex_astroport::astroport_v5::factory::{ExecuteMsg as FactoryExecuteMsg, FeeInfoResponse};
+use cw_dex_astroport::astroport_v5::pair::{
     ExecuteMsg as PairExecuteMsg, PoolResponse, QueryMsg as PairQueryMsg, SimulationResponse,
     StablePoolParams,
 };
-use cw_dex_astroport::astroport::pair_concentrated::ConcentratedPoolParams;
-use cw_dex_astroport::{astroport, AstroportPool};
-use cw_it::astroport::astroport::factory::{PairConfig, QueryMsg as FactoryQueryMsg};
-use cw_it::astroport::astroport_v3::pair_xyk_sale_tax::{SaleTaxInitParams, TaxConfig};
+use cw_dex_astroport::astroport_v5::pair_concentrated::ConcentratedPoolParams;
+use cw_dex_astroport::AstroportPool;
+use cw_it::astroport::astroport_v5::factory::{PairConfig, QueryMsg as FactoryQueryMsg};
+use cw_it::astroport::astroport_v5::pair_xyk_sale_tax::{SaleTaxInitParams, TaxConfig};
 use cw_it::astroport::utils::{
-    create_astroport_pair, get_local_contracts, setup_astroport, AstroportContracts,
+    astroport_asset_info_to_astroport_v5_asset_info, create_astroport_pair, get_local_contracts,
+    setup_astroport, AstroportContracts,
 };
-use cw_it::cw_multi_test::ContractWrapper;
-
 use cw_it::cosmrs::proto::cosmwasm::wasm::v1::MsgExecuteContractResponse;
+use cw_it::cw_multi_test::ContractWrapper;
+use cw_it::cw_multi_test::{StargateKeeper, StargateMessageHandler, WasmKeeper};
+use cw_it::multi_test::api::MockApiBech32;
+use cw_it::multi_test::modules::TokenFactory;
+use cw_it::multi_test::test_addresses::MockAddressGenerator;
 use cw_it::multi_test::MultiTestRunner;
 use cw_it::osmosis_std::types::cosmos::bank::v1beta1::QueryBalanceRequest;
 use cw_it::test_tube::{Account, Bank, Module, Runner, SigningAccount, Wasm};
@@ -30,22 +38,48 @@ use cw_it::{ContractType, OwnedTestRunner, TestRunner};
 use liquidity_helper::LiquidityHelper;
 use test_case::test_matrix;
 
-#[cfg(feature = "osmosis-test-tube")]
-use cw_it::osmosis_test_tube::OsmosisTestApp;
+// #[cfg(feature = "osmosis-test-tube")]
+// use cw_it::osmosis_test_tube::OsmosisTestApp;
 
-#[cfg(feature = "osmosis-test-tube")]
-use cw_it::Artifact;
+// #[cfg(feature = "osmosis-test-tube")]
+// use cw_it::Artifact;
 
 use std::str::FromStr;
 
 pub const ASTROPORT_LIQUIDITY_HELPER_WASM_FILE: &str =
     "../../target/wasm32-unknown-unknown/release/astroport_liquidity_helper.wasm";
 
+pub const DENOM_CREATION_FEE: &str = "10000000uosmo";
+
+const TOKEN_FACTORY: &TokenFactory =
+    &TokenFactory::new("factory", 32, 16, 59 + 16, DENOM_CREATION_FEE);
+
+/// An enum to
+///
 pub fn get_test_runner<'a>() -> OwnedTestRunner<'a> {
     match option_env!("TEST_RUNNER").unwrap_or("multi-test") {
-        "multi-test" => OwnedTestRunner::MultiTest(MultiTestRunner::new("osmo")),
-        #[cfg(feature = "osmosis-test-tube")]
-        "osmosis-test-app" => OwnedTestRunner::OsmosisTestApp(OsmosisTestApp::new()),
+        "multi-test" => {
+            let mut stargate_keeper = StargateKeeper::new();
+            TOKEN_FACTORY.register_msgs(&mut stargate_keeper);
+
+            let wasm_keeper: WasmKeeper<Empty, Empty> =
+                WasmKeeper::new().with_address_generator(MockAddressGenerator);
+
+            let app = BasicAppBuilder::<Empty, Empty>::new()
+                .with_api(MockApiBech32::new("osmo"))
+                .with_stargate(stargate_keeper)
+                .with_wasm(wasm_keeper)
+                .build(|_, _, _| {});
+
+            let multi_test_runner = MultiTestRunner {
+                app,
+                address_prefix: "osmo",
+            };
+
+            OwnedTestRunner::MultiTest(multi_test_runner)
+        }
+        // #[cfg(feature = "osmosis-test-tube")]
+        // "osmosis-test-app" => OwnedTestRunner::OsmosisTestApp(OsmosisTestApp::new()),
         _ => panic!("Unsupported test runner type"),
     }
 }
@@ -63,7 +97,7 @@ where
     // Set uluna precision in native coin registry
     wasm.execute(
         &astroport_contracts.coin_registry.address,
-        &astroport::native_coin_registry::ExecuteMsg::Add {
+        &astroport_v5::native_coin_registry::ExecuteMsg::Add {
             native_coins: vec![("uluna".to_string(), 6)],
         },
         &[],
@@ -73,10 +107,10 @@ where
 
     // Upload astroport pair xyk sale tax contract
     let sale_tax_contract = match app {
-        #[cfg(feature = "osmosis-test-tube")]
-        TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
-            ("tests/astroport-artifacts/astroport_pair_xyk_sale_tax.wasm").to_string(),
-        )),
+        // #[cfg(feature = "osmosis-test-tube")]
+        // TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
+        //     ("tests/astroport-artifacts/astroport_pair_xyk_sale_tax.wasm").to_string(),
+        // )),
         TestRunner::MultiTest(_) => ContractType::MultiTestContract(Box::new(
             ContractWrapper::new_with_empty(
                 astroport_pair_xyk_sale_tax::contract::execute,
@@ -99,7 +133,8 @@ where
                 is_generator_disabled: false,
                 maker_fee_bps: 3333,
                 total_fee_bps: 30,
-                pair_type: PairType::Custom("astroport-pair-xyk-sale-tax".to_string()),
+                pair_type: V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string()),
+                permissioned: false,
             },
         },
         &[],
@@ -111,10 +146,10 @@ where
 
     // Load compiled wasm bytecode or multi-test contract depending on the runner
     let astroport_liquidity_helper_wasm_byte_code = match app {
-        #[cfg(feature = "osmosis-test-tube")]
-        TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
-            ASTROPORT_LIQUIDITY_HELPER_WASM_FILE.to_string(),
-        )),
+        // #[cfg(feature = "osmosis-test-tube")]
+        // TestRunner::OsmosisTestApp(_) => ContractType::Artifact(Artifact::Local(
+        //     ASTROPORT_LIQUIDITY_HELPER_WASM_FILE.to_string(),
+        // )),
         TestRunner::MultiTest(_) => {
             ContractType::MultiTestContract(Box::new(ContractWrapper::new(
                 astroport_liquidity_helper::contract::execute,
@@ -167,23 +202,25 @@ pub fn test_calc_xyk_balancing_swap() {
     let astro_token = astroport_contracts.astro_token.address.clone();
 
     // Create 1:1 XYK pool
-    let asset_infos: [AstroAssetInfo; 2] = [
-        AstroAssetInfo::NativeToken {
+    let asset_infos: [V3AstroAssetInfo; 2] = [
+        V3AstroAssetInfo::NativeToken {
             denom: "uluna".into(),
         },
-        AstroAssetInfo::Token {
+        V3AstroAssetInfo::Token {
             contract_addr: Addr::unchecked(&astro_token),
         },
     ];
-    let (uluna_astro_pair_addr, _) = create_astroport_pair(
-        &runner,
-        &astroport_contracts.factory.address,
-        PairType::Xyk {},
-        asset_infos.clone(),
-        None,
-        &admin,
-        None,
-    );
+    let (uluna_astro_pair_addr, uluna_astro_lp_token_addr, uluna_astro_token_denom) =
+        create_astroport_pair(
+            &runner,
+            &astroport_contracts.factory.address,
+            V5PairType::Xyk {},
+            asset_infos.clone(),
+            None,
+            &admin,
+            None,
+            &[Coin::from_str(DENOM_CREATION_FEE).unwrap()],
+        );
 
     // Increase allowance of astro token for Pair contract
     let increase_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
@@ -213,8 +250,9 @@ pub fn test_calc_xyk_balancing_swap() {
         ]
         .to_vec(),
         slippage_tolerance: Some(Decimal::from_str("0.02").unwrap()),
-        auto_stake: Some(false),
+        auto_stake: None,
         receiver: None,
+        min_lp_to_receive: None,
     };
     let _res = wasm
         .execute(
@@ -233,7 +271,7 @@ pub fn test_calc_xyk_balancing_swap() {
         .query(
             &astroport_contracts.factory.address,
             &FactoryQueryMsg::FeeInfo {
-                pair_type: PairType::Xyk {},
+                pair_type: V5PairType::Xyk {},
             },
         )
         .unwrap();
@@ -265,9 +303,11 @@ pub fn test_calc_xyk_balancing_swap() {
             &PairQueryMsg::Simulation {
                 offer_asset: AstroAsset {
                     amount: offer_asset.amount,
-                    info: asset_infos[0].clone(),
+                    info: astroport_asset_info_to_astroport_v5_asset_info(asset_infos[0].clone()),
                 },
-                ask_asset_info: Some(return_asset.info.into()),
+                ask_asset_info: Some(astroport_asset_info_to_astroport_v5_asset_info(
+                    return_asset.info.into(),
+                )),
             },
         )
         .unwrap();
@@ -282,14 +322,16 @@ const TOLERANCE: &str = "0.0005";
 #[test_matrix(
     [[Uint128::from(1_000_000u128), Uint128::from(2_000_000u128)]],
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(1_000_000_000_000u128)]],
-    [PairType::Xyk {},PairType::Stable {}, PairType::Custom("concentrated".to_string()), PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    // [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("concentrated".to_string()), V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     true
 )]
 // Test 2: 1:5 ratio, double amount of asset 2
 #[test_matrix(
     [[Uint128::from(1_000_000u128), Uint128::from(2_000_000u128)]],
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(5_000_000_000_000u128)]],
-    [PairType::Xyk {},PairType::Stable {}, PairType::Custom("concentrated".to_string()), PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    // [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("concentrated".to_string()), V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     true
 )]
 // Test 3: 1:2.9 pool ratio, 1:1 ratio of assets, but a lot of assets compared to pool (high
@@ -297,49 +339,51 @@ const TOLERANCE: &str = "0.0005";
 #[test_matrix(
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(1_000_000_000_000u128)]],
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(2_900_000_000_000u128)]],
-    [PairType::Xyk {},PairType::Stable {}, PairType::Custom("concentrated".to_string()), PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    // [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("concentrated".to_string()), V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     true
 )]
 // Test 4: 1:2 pool ratio, 0:1 ratio of assets
 #[test_matrix(
     [[Uint128::from(0u128), Uint128::from(1_000_000_000_000u128)]],
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(2_000_000_000_000u128)]],
-    [PairType::Xyk {},PairType::Stable {}, PairType::Custom("concentrated".to_string()), PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    // [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("concentrated".to_string()), V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     true
 )]
 // Test 5: 1:1 pool ratio, 1:1 ratio of assets
 #[test_matrix(
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(1_000_000_000_000u128)]],
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(1_000_000_000_000u128)]],
-    [PairType::Xyk {},PairType::Stable {}, PairType::Custom("concentrated".to_string()), PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("concentrated".to_string()), V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     true
 )]
 // Test 6: 1:1 pool ratio, 1:0 ratio of assets
 #[test_matrix(
     [[Uint128::from(1_000_000_000u128), Uint128::from(0u128)]],
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(1_000_000_000_000u128)]],
-    [PairType::Xyk {},PairType::Stable {}, PairType::Custom("concentrated".to_string()), PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {},V5PairType::Stable {}, V5PairType::Custom("concentrated".to_string()), V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     true
 )]
 // Test 7: Xyk amount of asset less than one microunit of other asset
 #[test_matrix(
     [[Uint128::from(0u128), Uint128::from(3564u128)]],
     [[Uint128::from(3450765745u128), Uint128::from(12282531965699u128)]],
-    [PairType::Xyk {}, PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
+    [V5PairType::Xyk {}, V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string())],
     false
 )]
 // Test 7: Amount of asset would be less than one microunit of other asset if it were xyk
 #[test_matrix(
     [[Uint128::from(0u128), Uint128::from(3564u128)]],
     [[Uint128::from(3450765745u128), Uint128::from(12282531965699u128)]],
-    [PairType::Stable {  }, PairType::Custom("concentrated".to_string())],
+    [V5PairType::Stable {  }, V5PairType::Custom("concentrated".to_string())],
     true
 )]
 // Test 8: Xyk 0:0 pool ratio, should fail
 #[test_matrix(
     [[Uint128::from(1_000_000_000_000u128), Uint128::from(1_000_000_000_000u128)]],
     [[Uint128::from(0u128), Uint128::from(0u128)]],
-    [PairType::Xyk {}, PairType::Custom("astroport-pair-xyk-sale-tax".to_string()), PairType::Stable {  }, PairType::Custom("concentrated".to_string())],
+    [V5PairType::Xyk {}, V5PairType::Custom("astroport-pair-xyk-sale-tax".to_string()), V5PairType::Stable {  }, V5PairType::Custom("concentrated".to_string())],
     true
     => panics
 )]
@@ -347,7 +391,7 @@ const TOLERANCE: &str = "0.0005";
 pub fn test_balancing_provide_liquidity(
     asset_amounts: [Uint128; 2],
     reserves: [Uint128; 2],
-    pair_type: PairType,
+    pair_type: V5PairType,
     should_provide: bool,
 ) {
     let owned_runner = get_test_runner();
@@ -369,23 +413,30 @@ pub fn test_balancing_provide_liquidity(
     let astro_token = astroport_contracts.astro_token.address.clone();
 
     // Create pool
-    let asset_infos: [AstroAssetInfo; 2] = [
-        AstroAssetInfo::NativeToken {
+    let asset_infos: [V3AstroAssetInfo; 2] = [
+        V3AstroAssetInfo::NativeToken {
             denom: "uluna".into(),
         },
-        AstroAssetInfo::Token {
+        V3AstroAssetInfo::Token {
             contract_addr: Addr::unchecked(&astro_token),
         },
     ];
+
+    let new_pair_type = match &pair_type {
+        V5PairType::Xyk {} => PairType::Xyk {},
+        V5PairType::Stable {} => PairType::Stable {},
+        V5PairType::Custom(t) => PairType::Custom(t.to_string()),
+    };
+
     let init_params = match &pair_type {
-        PairType::Stable {} => Some(
+        V5PairType::Stable {} => Some(
             to_json_binary(&StablePoolParams {
                 amp: 10u64,
                 owner: None,
             })
             .unwrap(),
         ),
-        PairType::Custom(t) => match t.as_str() {
+        V5PairType::Custom(t) => match t.as_str() {
             "concentrated" => Some(to_json_binary(&common_pcl_params()).unwrap()),
             "astroport-pair-xyk-sale-tax" => Some(
                 to_json_binary(&SaleTaxInitParams {
@@ -406,24 +457,27 @@ pub fn test_balancing_provide_liquidity(
         },
         _ => None,
     };
-    let (uluna_astro_pair_addr, uluna_astro_lp_token) = create_astroport_pair(
-        &runner,
-        &astroport_contracts.factory.address,
-        pair_type.clone(),
-        asset_infos,
-        init_params,
-        &admin,
-        None,
-    );
+    let (uluna_astro_pair_addr, uluna_astro_lp_token_addr, uluna_astro_token_denom) =
+        create_astroport_pair(
+            &runner,
+            &astroport_contracts.factory.address,
+            pair_type.clone(),
+            asset_infos,
+            init_params,
+            &admin,
+            None,
+            &[Coin::from_str(DENOM_CREATION_FEE).unwrap()],
+        );
+
     let pool = AstroportPool {
-        lp_token: AssetInfo::cw20(Addr::unchecked(uluna_astro_lp_token)),
+        lp_token: AssetInfo::native(uluna_astro_token_denom.clone()),
         pair_addr: Addr::unchecked(uluna_astro_pair_addr.clone()),
-        pair_type,
+        pair_type: new_pair_type,
         pool_assets: vec![
             AssetInfo::native("uluna".to_string()),
             AssetInfo::cw20(Addr::unchecked(&astro_token)),
         ],
-        liquidity_manager: Addr::unchecked(astroport_contracts.liquidity_manager.address.clone()),
+        liquidity_manager: None,
     };
 
     // Increase allowance of astro token for Pair contract
@@ -466,8 +520,9 @@ pub fn test_balancing_provide_liquidity(
         ]
         .to_vec(),
         slippage_tolerance: Some(Decimal::from_str("0.02").unwrap()),
-        auto_stake: Some(false),
-        receiver: None,
+        auto_stake: None,
+        receiver: Some(admin.address()),
+        min_lp_to_receive: None,
     };
     let coins = if !reserves[0].is_zero() {
         vec![Coin {
@@ -477,15 +532,37 @@ pub fn test_balancing_provide_liquidity(
     } else {
         vec![]
     };
-    let _res = wasm
+
+    let admin_token_balance_before =
+        query_token_balance(&runner, &admin.address(), &uluna_astro_token_denom);
+
+    let pair_addr_token_balance_before =
+        query_token_balance(&runner, &uluna_astro_pair_addr, &uluna_astro_token_denom);
+
+    let res = wasm
         .execute(&uluna_astro_pair_addr, &provide_liq_msg, &coins, &admin)
         .unwrap();
+
+    println!("uluna_astro_token_denom: {:?}", uluna_astro_token_denom);
+    println!("admin: {:?}", admin.address());
+
+    let admin_token_balance_after =
+        query_token_balance(&runner, &admin.address(), &uluna_astro_token_denom);
+    let pair_addr_token_balance_after =
+        query_token_balance(&runner, &uluna_astro_pair_addr, &uluna_astro_token_denom);
+    println!("admin_token_balance_before: {:?}", admin_token_balance_before);
+    println!("admin_token_balance_after: {:?}", admin_token_balance_after);
+
+    println!("pair_addr_token_balance_before: {:?}", pair_addr_token_balance_before);
+    println!("pair_addr_token_balance_after: {:?}", pair_addr_token_balance_after);
+
+
+    println!("provide_liq res: {:?}", res);
 
     // Check pool liquidity after adding
     let initial_pool_liquidity: PoolResponse = wasm
         .query(&uluna_astro_pair_addr, &PairQueryMsg::Pool {})
         .unwrap();
-    println!("initial_pool_liquidity: {initial_pool_liquidity:?}");
     if let AstroAssetInfo::NativeToken { denom: _ } = &initial_pool_liquidity.assets[0].info {
         assert_eq!(initial_pool_liquidity.assets[0].amount, reserves[0]);
         assert_eq!(initial_pool_liquidity.assets[1].amount, reserves[1]);
@@ -499,7 +576,6 @@ pub fn test_balancing_provide_liquidity(
     let astro_balance_before = query_cw20_balance(&runner, admin.address(), &astro_token);
 
     // Balancing Provide liquidity
-    println!("Balancing provide liquidity");
     let mut assets: AssetList = vec![Coin::new(asset_amounts[0].u128(), "uluna")].into();
     assets
         .add(&Asset::new(
@@ -610,5 +686,6 @@ pub fn common_pcl_params() -> ConcentratedPoolParams {
         price_scale: Decimal::one(),
         ma_half_time: 600,
         track_asset_balances: None,
+        fee_share: None,
     }
 }

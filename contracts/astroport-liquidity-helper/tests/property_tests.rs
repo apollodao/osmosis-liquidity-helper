@@ -4,6 +4,7 @@ use astroport_integration_tests::test_balancing_provide_liquidity;
 use astroport_liquidity_helper::math::constant_product_formula;
 use cosmwasm_std::{Decimal, Uint128};
 use cw_dex_astroport::astroport::factory::PairType;
+use cw_dex_astroport::astroport_v5::factory::PairType as V5PairType;
 use proptest::prelude::*;
 use proptest::proptest;
 
@@ -74,10 +75,16 @@ proptest! {
             true
         };
 
+        let new_pair_type = match &pair_type {
+            PairType::Xyk {} => V5PairType::Xyk {},
+            PairType::Stable {} => V5PairType::Stable {},
+            PairType::Custom(t) => V5PairType::Custom(t.to_string()),
+        };
+
         test_balancing_provide_liquidity(
             assets,
             reserves,
-            pair_type,
+            new_pair_type,
             should_swap
         );
     }
