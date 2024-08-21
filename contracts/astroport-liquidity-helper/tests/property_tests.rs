@@ -3,7 +3,7 @@ pub mod astroport_integration_tests;
 use astroport_integration_tests::test_balancing_provide_liquidity;
 use astroport_liquidity_helper::math::constant_product_formula;
 use cosmwasm_std::{Decimal, Uint128};
-use cw_dex_astroport::astroport::factory::PairType;
+use cw_it::astroport::astroport::factory::PairType;
 use proptest::prelude::*;
 use proptest::proptest;
 

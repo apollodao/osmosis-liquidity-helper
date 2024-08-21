@@ -28,7 +28,7 @@ liquidity-helper  = { version = "0.4.0-rc.1", path = "./packages/liquidity-helpe
 semver            = "1.0.20"
 
 # Dev dependencies
-cw-it             = "0.3.1"
+cw-it             = "0.4.0-rc.7"
 test-case         = "3.2.1"
 proptest          = "1.4.0"
 
