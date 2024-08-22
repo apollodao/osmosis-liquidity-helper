@@ -138,27 +138,11 @@ dependencies = [
 
 [[package]]
 name = "astroport"
-version = "4.0.0"
-source = "git+https://github.com/astroport-fi/astroport-core?branch=main#5bff86a0229c7bd96e9f719d0c5907b9b8c3762d"
-dependencies = [
- "astroport-circular-buffer 0.2.0 (git+https://github.com/astroport-fi/astroport-core?branch=main)",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-asset",
- "cw-storage-plus 1.2.0",
- "cw-utils 1.0.3",
- "cw20 1.1.2",
- "itertools 0.12.1",
- "uint",
-]
-
-[[package]]
-name = "astroport"
 version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5ec8dd4298b362361b0e118107a060e5e58501a68273b3257059c96b723b57c"
 dependencies = [
- "astroport-circular-buffer 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "astroport-circular-buffer 0.2.0",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-asset",
@@ -175,7 +159,7 @@ version = "5.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b3b225e86694e2fd1adbf230581bce1690a871585aec9edd64b022a313a8493"
 dependencies = [
- "astroport-circular-buffer 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "astroport-circular-buffer 0.2.0",
  "cosmos-sdk-proto 0.19.0",
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -209,17 +193,6 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 0.15.1",
- "thiserror",
-]
-
-[[package]]
-name = "astroport-circular-buffer"
-version = "0.2.0"
-source = "git+https://github.com/astroport-fi/astroport-core?branch=main#5bff86a0229c7bd96e9f719d0c5907b9b8c3762d"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.2.0",
  "thiserror",
 ]
 
@@ -301,7 +274,7 @@ checksum = "add163cbe65b61f57c427c57bbfaef5a0848ac5dd822835c94b76587584c36ca"
 dependencies = [
  "astroport 3.11.1",
  "astroport-factory",
- "astroport-pair 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "astroport-pair 1.5.1",
  "astroport-pair-stable 3.4.0",
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -362,22 +335,6 @@ dependencies = [
 
 [[package]]
 name = "astroport-pair"
-version = "1.5.1"
-source = "git+https://github.com/astroport-fi/astroport-core?branch=main#5bff86a0229c7bd96e9f719d0c5907b9b8c3762d"
-dependencies = [
- "astroport 4.0.0",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.2.0",
- "cw-utils 1.0.3",
- "cw2 1.1.2",
- "cw20 1.1.2",
- "integer-sqrt",
- "thiserror",
-]
-
-[[package]]
-name = "astroport-pair"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a5e6cd4508d45d89f9f44b607eb482aa614fa54274c46746d6f251bf10b27ae"
@@ -400,7 +357,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a32d9cadee60182935879a465d7bff7733b917e814ce29d97d6903f7336119a"
 dependencies = [
  "astroport 5.3.0",
- "astroport-circular-buffer 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "astroport-circular-buffer 0.2.0",
  "astroport-factory",
  "astroport-pcl-common",
  "cosmwasm-schema",
@@ -438,7 +395,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3386d5771faedd33fc7741cb0a7082cbdc0416d42f1bd051d4f1a0b987248e3c"
 dependencies = [
  "astroport 5.3.0",
- "astroport-circular-buffer 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "astroport-circular-buffer 0.2.0",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 1.2.0",
@@ -451,11 +408,12 @@ dependencies = [
 
 [[package]]
 name = "astroport-pair-xyk-sale-tax"
-version = "1.6.0"
-source = "git+https://github.com/astroport-fi/astroport-core?branch=main#5bff86a0229c7bd96e9f719d0c5907b9b8c3762d"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f338f350cd636d58abaecb3d549bed1a0586e8b3e56a35fe338642db5e2b6546"
 dependencies = [
- "astroport 4.0.0",
- "astroport-pair 1.5.1 (git+https://github.com/astroport-fi/astroport-core?branch=main)",
+ "astroport 5.3.0",
+ "astroport-pair 2.0.1",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 1.2.0",

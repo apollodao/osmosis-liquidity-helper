@@ -12,8 +12,8 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_dex_astroport::astroport::factory::PairType;
-use cw_dex_astroport::astroport::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::astroport::querier::query_fee_info;
+use cw_dex_astroport::astroport_v5::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::AstroportPool;
 
 use cw_dex::traits::Pool;
