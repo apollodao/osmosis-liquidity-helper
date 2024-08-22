@@ -179,8 +179,6 @@ where
         .data
         .address;
 
-    println!("post liquidity helper instantiation");
-
     LiquidityHelper::new(Addr::unchecked(astroport_liquidity_helper))
 }
 
@@ -425,8 +423,6 @@ pub fn test_balancing_provide_liquidity(
         setup_astroport_liquidity_provider_tests(&runner, astroport_contracts, &admin);
     let astro_token = astroport_contracts.astro_token.address.clone();
 
-    println!("post liquidity helper setup");
-
     // Create pool
     let asset_infos: [AstroAssetInfoV2; 2] = [
         AstroAssetInfoV2::NativeToken {
@@ -465,7 +461,6 @@ pub fn test_balancing_provide_liquidity(
         },
         _ => None,
     };
-    println!("Creating pair");
     let (uluna_astro_pair_addr, uluna_astro_lp_token) = create_astroport_pair(
         &runner,
         &astroport_contracts.factory.address,
@@ -476,7 +471,6 @@ pub fn test_balancing_provide_liquidity(
         None,
         &[Coin::from_str(DENOM_CREATION_FEE).unwrap()],
     );
-    println!("post pair creation");
 
     // TODO: Update cw-dex-astroport to use Astroport v5 pairtype
     let v2_pair_type: cw_dex_astroport::astroport::factory::PairType = match pair_type {
@@ -540,8 +534,6 @@ pub fn test_balancing_provide_liquidity(
         receiver: None,
         min_lp_to_receive: None,
     };
-    println!("post providqe liquidity msg creation");
-
     let coins = if !reserves[0].is_zero() {
         vec![Coin {
             amount: reserves[0],
@@ -553,7 +545,6 @@ pub fn test_balancing_provide_liquidity(
     let _res = wasm
         .execute(&uluna_astro_pair_addr, &provide_liq_msg, &coins, &admin)
         .unwrap();
-    println!("post provide liquidity execution");
 
     // Check pool liquidity after adding
     let initial_pool_liquidity: PoolResponse = wasm

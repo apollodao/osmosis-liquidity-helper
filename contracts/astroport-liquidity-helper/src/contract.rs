@@ -95,27 +95,17 @@ pub fn execute_balancing_provide_liquidity(
     pool: AstroportPool,
     recipient: Option<String>,
 ) -> Result<Response, ContractError> {
-    deps.api.debug("execute_balancing_provide_liquidity");
-
     // Get response with message to do TransferFrom on any Cw20s and assert that
     // native tokens have been received already.
     let receive_res = receive_assets(&info, &env, &assets)?;
 
-    deps.api.debug("post receive assets");
-
     // Unwrap recipient or use caller's address
     let recipient = recipient.map_or(Ok(info.sender.clone()), |x| deps.api.addr_validate(&x))?;
-
-    deps.api.debug("post recipient");
-
-    deps.api.debug(format!("pool: {:?}", pool).as_str());
 
     // Check lp token balance before, to pass into callback
     let lp_token_balance = pool
         .lp_token()
         .query_balance(&deps.querier, env.contract.address.to_string())?;
-
-    deps.api.debug("post lp token balance");
 
     // For XYK pools we need to swap some amount of one asset into the other before
     // we provide liquidity. For other types we can just provide liquidity
@@ -157,8 +147,6 @@ pub fn execute_balancing_provide_liquidity(
                 }),
         ];
 
-        deps.api.debug("post assets slice");
-
         // Get fee amount
         let fee_info = query_fee_info(
             &deps.querier,
@@ -166,8 +154,6 @@ pub fn execute_balancing_provide_liquidity(
             pool.pair_type.clone(),
         )?;
         let fee = fee_info.total_fee_rate;
-
-        deps.api.debug("post fee info");
 
         // Get sale tax if applicable
         let tax_configs: Option<TaxConfigs<Addr>> = match &pool.pair_type {
@@ -195,8 +181,6 @@ pub fn execute_balancing_provide_liquidity(
             _ => None,
         };
 
-        deps.api.debug("post tax configs");
-
         // Calculate amount of tokens to swap
         let (offer_asset, return_asset) = calc_xyk_balancing_swap(
             assets_slice,
@@ -205,13 +189,9 @@ pub fn execute_balancing_provide_liquidity(
             tax_configs,
         )?;
 
-        deps.api.debug("post calc xyk balancing swap");
-
         // Update balances for liquidity provision
         assets.add(&return_asset)?;
         assets.deduct(&offer_asset)?;
-
-        deps.api.debug("post add deduct balances");
 
         // If either of the assets are still zero after the swap, we can't
         // provide liquidity. This can happen if the amount of tokens to swap
@@ -251,8 +231,6 @@ pub fn execute_balancing_provide_liquidity(
             }
         }
 
-        deps.api.debug("post zero check");
-
         // Create message to swap some of the asset to the other
         if offer_asset.amount > Uint128::zero() && return_asset.amount > Uint128::zero() {
             pool.swap(
@@ -269,15 +247,11 @@ pub fn execute_balancing_provide_liquidity(
         Response::new()
     };
 
-    deps.api.debug("post xyk");
-
     // For stableswap and concentrated liquidity pools we are allowed to provide
     // liquidity in any ratio, so we simply provide liquidity with all passed
     // assets.
     let provide_liquidity_res =
         pool.provide_liquidity(deps.as_ref(), &env, assets.clone(), Uint128::zero())?;
-
-    deps.api.debug("post provide liquidity");
 
     // Callback to return LP tokens
     let callback_msg = CallbackMsg::ReturnLpTokens {
@@ -287,8 +261,6 @@ pub fn execute_balancing_provide_liquidity(
         recipient,
     }
     .into_cosmos_msg(&env)?;
-
-    deps.api.debug("post callback construction");
 
     let event: Event =
         Event::new("apollo/astroport-liquidity-helper/execute_balancing_provide_liquidity")
