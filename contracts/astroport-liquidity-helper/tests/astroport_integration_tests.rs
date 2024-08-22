@@ -572,8 +572,8 @@ pub fn test_balancing_provide_liquidity(
     let uluna_balance_before = query_token_balance(&runner, &admin.address(), "uluna");
     let astro_balance_before = query_cw20_balance(&runner, admin.address(), &astro_token);
 
-    // Balancing Provide liquidity
-    println!("Balancing provide liquidity");
+    // Balancing Provide liquidity with min_out
+    println!("Balancing provide liquidity with min_out");
     let mut assets: AssetList = vec![Coin::new(asset_amounts[0].u128(), "uluna")].into();
     assets
         .add(&Asset::new(
@@ -581,6 +581,24 @@ pub fn test_balancing_provide_liquidity(
             asset_amounts[1],
         ))
         .unwrap();
+    let msgs = liquidity_helper
+        .balancing_provide_liquidity(
+            assets.clone(),
+            Uint128::from(1000000000000000000000000u128),
+            to_json_binary(&pool).unwrap(),
+            None,
+        )
+        .unwrap();
+    let err = runner
+        .execute_cosmos_msgs::<MsgExecuteContractResponse>(&msgs, &admin)
+        .unwrap_err();
+    println!("err: {err:?}");
+    assert!(err
+        .to_string()
+        .contains("Did not receive expected amount of LP tokens"));
+
+    // Balancing Provide liquidity
+    println!("Balancing provide liquidity");
     let msgs = liquidity_helper
         .balancing_provide_liquidity(
             assets,

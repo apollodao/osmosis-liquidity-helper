@@ -14,6 +14,7 @@ pub type ExecuteMsg = GenericExecuteMsg<CallbackMsg>;
 pub enum CallbackMsg {
     ReturnLpTokens {
         pool: AstroportPool,
+        min_out: Uint128,
         balance_before: Uint128,
         recipient: Addr,
     },
