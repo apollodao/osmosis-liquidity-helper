@@ -1066,9 +1066,9 @@ dependencies = [
 
 [[package]]
 name = "cw-dex-astroport"
-version = "0.2.0-rc.2"
+version = "0.2.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfe5242b472f826fc5b17320c99eb0f7846b5109aad433a9fc35e59266faf08f"
+checksum = "3ba163435386ed54cc618ef4a3ed33d930ccb7a27b0e89a06092b439d098af59"
 dependencies = [
  "apollo-cw-asset",
  "apollo-utils",

@@ -11,9 +11,10 @@ use cosmwasm_std::{
     MessageInfo, Response, StdResult, Uint128,
 };
 use cw2::set_contract_version;
+use cw_dex_astroport::astroport::asset::{Asset as AstroAsset, AssetInfo as AstroAssetInfo};
 use cw_dex_astroport::astroport::factory::PairType;
+use cw_dex_astroport::astroport::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::astroport::querier::query_fee_info;
-use cw_dex_astroport::astroport_v5::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::AstroportPool;
 
 use cw_dex::traits::Pool;
@@ -121,8 +122,8 @@ pub fn execute_balancing_provide_liquidity(
         let pool_res = pool.query_pool_info(&deps.querier)?;
 
         let pool_reserves: [Asset; 2] = [
-            Asset::from(pool_res.assets[0].clone()),
-            Asset::from(pool_res.assets[1].clone()),
+            astroport_v5_asset_to_asset(pool_res.assets[0].clone()),
+            astroport_v5_asset_to_asset(pool_res.assets[1].clone()),
         ];
         if assets.len() > 2 {
             return Err(ContractError::MoreThanTwoAssets {});
@@ -340,4 +341,13 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     Ok(Response::default())
+}
+
+pub fn astroport_v5_asset_to_asset(asset: AstroAsset) -> Asset {
+    match asset.info {
+        AstroAssetInfo::NativeToken { denom } => Asset::new(AssetInfo::native(denom), asset.amount),
+        AstroAssetInfo::Token { contract_addr } => {
+            Asset::new(AssetInfo::cw20(contract_addr), asset.amount)
+        }
+    }
 }
