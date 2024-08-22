@@ -493,9 +493,7 @@ pub fn test_balancing_provide_liquidity(
             AssetInfo::native("uluna".to_string()),
             AssetInfo::cw20(Addr::unchecked(&astro_token)),
         ],
-        liquidity_manager: Some(Addr::unchecked(
-            astroport_contracts.liquidity_manager.address.clone(),
-        )),
+        liquidity_manager: None,
     };
 
     // Increase allowance of astro token for Pair contract
