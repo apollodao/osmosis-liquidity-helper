@@ -15,9 +15,8 @@ use cw_dex_astroport::astroport::asset::{Asset as AstroAsset, AssetInfo as Astro
 use cw_dex_astroport::astroport::factory::PairType;
 use cw_dex_astroport::astroport::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::astroport::querier::query_fee_info;
+use cw_dex_astroport::cw_dex::traits::Pool;
 use cw_dex_astroport::AstroportPool;
-
-use cw_dex::traits::Pool;
 
 use crate::error::ContractError;
 use crate::math::calc_xyk_balancing_swap;

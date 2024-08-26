@@ -1,6 +1,6 @@
 use cosmwasm_std::{OverflowError, StdError, Uint128};
 use cw_bigint::TryFromBigIntError;
-use cw_dex::CwDexError;
+use cw_dex_astroport::cw_dex::CwDexError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

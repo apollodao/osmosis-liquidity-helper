@@ -6,7 +6,7 @@ use cosmwasm_std::{
     StdResult, Uint128,
 };
 use cw2::set_contract_version;
-use cw_dex::traits::Pool;
+use cw_dex_osmosis::cw_dex::traits::Pool;
 use cw_dex_osmosis::OsmosisPool;
 
 use crate::error::ContractError;
