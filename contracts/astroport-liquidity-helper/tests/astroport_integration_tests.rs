@@ -197,7 +197,7 @@ pub fn test_calc_xyk_balancing_swap() {
     let astroport_contracts = &setup_astroport(&runner, astroport_contracts, &admin);
     let wasm = Wasm::new(&runner);
 
-    let astro_token = astroport_contracts.astro_token.address.clone();
+    let astro_token = astroport_contracts.astro_cw20_token.address.clone();
 
     // Create 1:1 XYK pool
     let asset_infos: [AstroAssetInfoV2; 2] = [
@@ -421,7 +421,7 @@ pub fn test_balancing_provide_liquidity(
     let wasm = Wasm::new(&runner);
     let liquidity_helper =
         setup_astroport_liquidity_provider_tests(&runner, astroport_contracts, &admin);
-    let astro_token = astroport_contracts.astro_token.address.clone();
+    let astro_token = astroport_contracts.astro_cw20_token.address.clone();
 
     // Create pool
     let asset_infos: [AstroAssetInfoV2; 2] = [
