@@ -11,12 +11,12 @@ use cosmwasm_std::{
     MessageInfo, Response, StdResult, Uint128,
 };
 use cw2::set_contract_version;
+use cw_dex_astroport::astroport::asset::{Asset as AstroAsset, AssetInfo as AstroAssetInfo};
 use cw_dex_astroport::astroport::factory::PairType;
 use cw_dex_astroport::astroport::pair::{ConfigResponse, QueryMsg as PairQueryMsg};
 use cw_dex_astroport::astroport::querier::query_fee_info;
+use cw_dex_astroport::cw_dex::traits::Pool;
 use cw_dex_astroport::AstroportPool;
-
-use cw_dex::traits::Pool;
 
 use crate::error::ContractError;
 use crate::math::calc_xyk_balancing_swap;
@@ -69,6 +69,7 @@ pub fn execute(
             match msg {
                 CallbackMsg::ReturnLpTokens {
                     pool,
+                    min_out,
                     balance_before,
                     recipient,
                 } => execute_callback_return_lp_tokens(
@@ -76,6 +77,7 @@ pub fn execute(
                     env,
                     info,
                     pool,
+                    min_out,
                     balance_before,
                     recipient,
                 ),
@@ -119,8 +121,8 @@ pub fn execute_balancing_provide_liquidity(
         let pool_res = pool.query_pool_info(&deps.querier)?;
 
         let pool_reserves: [Asset; 2] = [
-            Asset::from(pool_res.assets[0].clone()),
-            Asset::from(pool_res.assets[1].clone()),
+            astroport_v5_asset_to_asset(pool_res.assets[0].clone()),
+            astroport_v5_asset_to_asset(pool_res.assets[1].clone()),
         ];
         if assets.len() > 2 {
             return Err(ContractError::MoreThanTwoAssets {});
@@ -249,11 +251,12 @@ pub fn execute_balancing_provide_liquidity(
     // liquidity in any ratio, so we simply provide liquidity with all passed
     // assets.
     let provide_liquidity_res =
-        pool.provide_liquidity(deps.as_ref(), &env, assets.clone(), min_out)?;
+        pool.provide_liquidity(deps.as_ref(), &env, assets.clone(), Uint128::zero())?;
 
     // Callback to return LP tokens
     let callback_msg = CallbackMsg::ReturnLpTokens {
         pool,
+        min_out,
         balance_before: lp_token_balance,
         recipient,
     }
@@ -276,6 +279,7 @@ pub fn execute_callback_return_lp_tokens(
     env: Env,
     _info: MessageInfo,
     pool: AstroportPool,
+    min_out: Uint128,
     balance_before: Uint128,
     recipient: Addr,
 ) -> Result<Response, ContractError> {
@@ -283,6 +287,15 @@ pub fn execute_callback_return_lp_tokens(
     let lp_token_balance = lp_token.query_balance(&deps.querier, env.contract.address)?;
 
     let return_amount = lp_token_balance.checked_sub(balance_before)?;
+
+    // Assert return_amount is greater than min_out
+    if return_amount < min_out {
+        return Err(ContractError::MinOutNotReceived {
+            min_out,
+            received: return_amount,
+        });
+    }
+
     let return_asset = Asset::new(lp_token, return_amount);
     let msg = return_asset.transfer_msg(&recipient)?;
 
@@ -327,4 +340,13 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     Ok(Response::default())
+}
+
+pub fn astroport_v5_asset_to_asset(asset: AstroAsset) -> Asset {
+    match asset.info {
+        AstroAssetInfo::NativeToken { denom } => Asset::new(AssetInfo::native(denom), asset.amount),
+        AstroAssetInfo::Token { contract_addr } => {
+            Asset::new(AssetInfo::cw20(contract_addr), asset.amount)
+        }
+    }
 }

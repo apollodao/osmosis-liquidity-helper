@@ -1,6 +1,6 @@
 use apollo_cw_asset::Asset;
 use cosmwasm_std::{OverflowError, StdError, Uint128};
-use cw_dex::CwDexError;
+use cw_dex_osmosis::cw_dex::CwDexError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

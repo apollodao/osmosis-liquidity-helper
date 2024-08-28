@@ -5,11 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [Unreleased] - 2024-05-05
+# [0.4.0] - 2024-08-28
 
 ### Changed
 
-- Bump `cw-dex-astroport` to version `0.2.0-rc1`.
+- Bump `cw-dex-astroport` to version `0.2.0`.
+- Bump `cw-dex-osmosis` to version `0.2.0`.
+- Use re-exported version of `cw-dex` from `cw-dex-astroport` and `cw-dex-osmosis` packages.
+- Bump `cw-it` to version `0.4.0`.
+
 
 # [0.3.3] - 2024-04-09
 
